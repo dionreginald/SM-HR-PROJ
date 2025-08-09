@@ -1,0 +1,116 @@
+/* HomePage.css */
+
+/* Global styles for a clean slate */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f0f2f5; /* Light background for the whole page */
+}
+
+/* Base styles for the homepage container */
+.homepage-new {
+  color: #333; /* Default text color */
+}
+
+/* Keyframe animations for a smooth entrance */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(20px) scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Ensure images are responsive and don't overflow */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Adjustments for the Hero Section's children animations */
+.MuiTypography-root[class*="HeroTitle"],
+.MuiTypography-root[class*="HeroSubtitle"],
+.MuiButton-root[class*="CtaButton"] {
+  animation-fill-mode: backwards; /* Ensures elements are hidden before animation starts */
+}
+
+/* Placeholder for the dashboard mockup image */
+/* Make sure you have an image at public/images/dashboard-mockup.png for the hero section */
+/* And icons at public/images/icon-employee-records.png, icon-leave-management.png, icon-payroll.png */
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .MuiBox-root[class*="HeroSection"] {
+    padding: 30px 20px;
+  }
+
+  .MuiTypography-root[class*="HeroTitle"] {
+    font-size: clamp(2rem, 8vw, 4rem);
+  }
+
+  .MuiTypography-root[class*="HeroSubtitle"] {
+    font-size: clamp(0.9rem, 3vw, 1.2rem);
+  }
+
+  .MuiButton-root[class*="CtaButton"] {
+    padding: 12px 30px;
+    font-size: 1rem;
+  }
+
+  .MuiBox-root[class*="FeaturesSection"] {
+    padding: 60px 20px;
+  }
+
+  .MuiBox-root[class*="FeaturesGrid"] {
+    grid-template-columns: 1fr; /* Stack features vertically on small screens */
+    gap: 40px;
+  }
+
+  .MuiBox-root[class*="FeatureCard"] {
+    padding: 30px;
+  }
+
+  .MuiBox-root[id="about"],
+  .MuiBox-root[id="contact"] {
+    padding: 60px 20px;
+  }
+
+  .MuiTypography-root[class*="MuiTypography-h4"] {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .MuiTypography-root[class*="HeroTitle"] {
+    font-size: clamp(1.8rem, 10vw, 3rem);
+  }
+}
+.homepage-new {
+  color: #333; 
+  padding-top: 164px; 
+}

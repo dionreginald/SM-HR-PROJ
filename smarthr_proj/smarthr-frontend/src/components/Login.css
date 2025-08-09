@@ -1,0 +1,68 @@
+/* src/components/Login.css */
+
+/* Global body styles to remove default margins and ensure consistent font */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Keyframe animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Animation for the illustration sliding in from left */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Animation for the form card sliding in from right */
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+
+/* Ensure animation properties are applied correctly */
+/* These make sure elements start hidden before their animations run */
+.MuiBox-root[class*="LoginFormCard"],
+.MuiBox-root[class*="IllustrationColumn"] img {
+  animation-fill-mode: backwards;
+}
+
+/* Specific styling for the Divider text */
+.MuiDivider-root .MuiTypography-root {
+  background-color: #ffffff; /* Match card background */
+  padding: 0 10px; /* Space around "Or login with" text */
+}

@@ -1,0 +1,24 @@
+/* HomeNavbar.css */
+
+/* Base styles for the logo */
+.navbar-logo {
+  height: 45px; /* Adjust size as needed */
+  transition: height 0.3s ease; /* Smooth transition for potential sizing changes */
+}
+
+/* Optional: Make logo slightly smaller when scrolled */
+.MuiAppBar-root.scrolled .navbar-logo {
+  height: 40px;
+}
+
+/* Ensure smooth scrolling when clicking nav links to sections */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Basic responsive adjustments if needed, though MUI handles much */
+@media (max-width: 900px) {
+  /* You might want to implement a mobile menu (e.g., a Drawer component)
+     for smaller screens instead of just hiding links.
+     For this example, the Box component handles hiding them with display: none. */
+}
