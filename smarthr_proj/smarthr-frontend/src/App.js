@@ -1,4 +1,3 @@
-// src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { CustomThemeProvider } from './contexts/ThemeContext';
@@ -32,7 +31,7 @@ import Payslips from './components/Payslips';
 import ViewLeaveRequests from './components/ViewLeaveRequests';
 import AdminNotificationSender from './components/AdminNotificationSender';
 import Events from './components/Events';
-import AdminFooter from './components/AdminFooter'; // ✅ Footer for Admin
+import AdminFooter from './components/AdminFooter'; // Footer for Admin
 
 // Employee Components
 import EmployeeLogin from './components/EmployeeLogin';
@@ -42,6 +41,9 @@ import EmployeeLeaveRequest from './components/EmployeeLeaveRequest';
 import EmployeeNotificationList from './components/EmployeeNotificationList';
 import EmployeePayslips from './components/EmployeePayslips';
 import EmployeeLayout from './components/EmployeeLayout';
+
+// New Employee Wrapper with Footer
+import EmployeePageWrapper from './components/EmployeePageWrapper';
 
 // Protected Route Logic
 function AdminProtectedRoute({ children }) {
@@ -56,11 +58,7 @@ function EmployeeProtectedRoute({ children }) {
 
 // Wrapper for Admin pages with sticky footer
 const AdminPageWrapper = ({ children }) => (
-  <div style={{
-    display: 'flex',
-    flexDirection: 'column',
-    minHeight: '100vh'
-  }}>
+  <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
     <div style={{ flex: 1 }}>
       {children}
     </div>
@@ -73,7 +71,7 @@ const withNavbar = (Component) => () => (
   <>
     <HomeNavbar />
     <Component />
-    <TawkToChat /> {/* ✅ Live Chat Widget on public pages */}
+    <TawkToChat /> {/* Live Chat Widget on public pages */}
   </>
 );
 
@@ -103,27 +101,208 @@ export default function App() {
           <Route path="/employee-login" element={<EmployeeLogin />} />
 
           {/* Admin Routes with Footer */}
-          <Route path="/dashboard" element={<AdminProtectedRoute><AdminPageWrapper><Dashboard /></AdminPageWrapper></AdminProtectedRoute>} />
-          <Route path="/dashboard/profile" element={<AdminProtectedRoute><AdminPageWrapper><Profile /></AdminPageWrapper></AdminProtectedRoute>} />
-          <Route path="/dashboard/change-password" element={<AdminProtectedRoute><AdminPageWrapper><ChangePassword /></AdminPageWrapper></AdminProtectedRoute>} />
-          <Route path="/dashboard/add-employee" element={<AdminProtectedRoute><AdminPageWrapper><AddEmployee /></AdminPageWrapper></AdminProtectedRoute>} />
-          <Route path="/dashboard/employees" element={<AdminProtectedRoute><AdminPageWrapper><ViewEmployees /></AdminPageWrapper></AdminProtectedRoute>} />
-          <Route path="/dashboard/employees/:id" element={<AdminProtectedRoute><AdminPageWrapper><EmployeeDetails /></AdminPageWrapper></AdminProtectedRoute>} />
-          <Route path="/dashboard/edit-employee/:id" element={<AdminProtectedRoute><AdminPageWrapper><EditEmployee /></AdminPageWrapper></AdminProtectedRoute>} />
-          <Route path="/dashboard/add-payroll" element={<AdminProtectedRoute><AdminPageWrapper><AddPayroll /></AdminPageWrapper></AdminProtectedRoute>} />
-          <Route path="/dashboard/view-payrolls" element={<AdminProtectedRoute><AdminPageWrapper><ViewPayrolls /></AdminPageWrapper></AdminProtectedRoute>} />
-          <Route path="/dashboard/payslips" element={<AdminProtectedRoute><AdminPageWrapper><Payslips /></AdminPageWrapper></AdminProtectedRoute>} />
-          <Route path="/dashboard/leave-requests" element={<AdminProtectedRoute><AdminPageWrapper><ViewLeaveRequests /></AdminPageWrapper></AdminProtectedRoute>} />
-          <Route path="/dashboard/notifications" element={<AdminProtectedRoute><AdminPageWrapper><AdminNotificationSender /></AdminPageWrapper></AdminProtectedRoute>} />
-          <Route path="/dashboard/events" element={<AdminProtectedRoute><AdminPageWrapper><Events /></AdminPageWrapper></AdminProtectedRoute>} />
-          <Route path="/logout" element={<AdminProtectedRoute><AdminPageWrapper><Logout /></AdminPageWrapper></AdminProtectedRoute>} />
+          <Route
+            path="/dashboard"
+            element={
+              <AdminProtectedRoute>
+                <AdminPageWrapper>
+                  <Dashboard />
+                </AdminPageWrapper>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/profile"
+            element={
+              <AdminProtectedRoute>
+                <AdminPageWrapper>
+                  <Profile />
+                </AdminPageWrapper>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/change-password"
+            element={
+              <AdminProtectedRoute>
+                <AdminPageWrapper>
+                  <ChangePassword />
+                </AdminPageWrapper>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/add-employee"
+            element={
+              <AdminProtectedRoute>
+                <AdminPageWrapper>
+                  <AddEmployee />
+                </AdminPageWrapper>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/employees"
+            element={
+              <AdminProtectedRoute>
+                <AdminPageWrapper>
+                  <ViewEmployees />
+                </AdminPageWrapper>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/employees/:id"
+            element={
+              <AdminProtectedRoute>
+                <AdminPageWrapper>
+                  <EmployeeDetails />
+                </AdminPageWrapper>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/edit-employee/:id"
+            element={
+              <AdminProtectedRoute>
+                <AdminPageWrapper>
+                  <EditEmployee />
+                </AdminPageWrapper>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/add-payroll"
+            element={
+              <AdminProtectedRoute>
+                <AdminPageWrapper>
+                  <AddPayroll />
+                </AdminPageWrapper>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/view-payrolls"
+            element={
+              <AdminProtectedRoute>
+                <AdminPageWrapper>
+                  <ViewPayrolls />
+                </AdminPageWrapper>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/payslips"
+            element={
+              <AdminProtectedRoute>
+                <AdminPageWrapper>
+                  <Payslips />
+                </AdminPageWrapper>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/leave-requests"
+            element={
+              <AdminProtectedRoute>
+                <AdminPageWrapper>
+                  <ViewLeaveRequests />
+                </AdminPageWrapper>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/notifications"
+            element={
+              <AdminProtectedRoute>
+                <AdminPageWrapper>
+                  <AdminNotificationSender />
+                </AdminPageWrapper>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/events"
+            element={
+              <AdminProtectedRoute>
+                <AdminPageWrapper>
+                  <Events />
+                </AdminPageWrapper>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/logout"
+            element={
+              <AdminProtectedRoute>
+                <AdminPageWrapper>
+                  <Logout />
+                </AdminPageWrapper>
+              </AdminProtectedRoute>
+            }
+          />
 
-          {/* Employee Routes (using EmployeeLayout, no footer) */}
-          <Route path="/employee-dashboard" element={<EmployeeProtectedRoute><EmployeeLayout><EmployeeDashboard /></EmployeeLayout></EmployeeProtectedRoute>} />
-          <Route path="/employee-profile" element={<EmployeeProtectedRoute><EmployeeLayout><EmployeeProfile /></EmployeeLayout></EmployeeProtectedRoute>} />
-          <Route path="/employee-leave-request" element={<EmployeeProtectedRoute><EmployeeLayout><EmployeeLeaveRequest /></EmployeeLayout></EmployeeProtectedRoute>} />
-          <Route path="/employee-notifications" element={<EmployeeProtectedRoute><EmployeeLayout><EmployeeNotificationList employeeId={JSON.parse(localStorage.getItem('employee'))?.id} /></EmployeeLayout></EmployeeProtectedRoute>} />
-          <Route path="/employee-payslips" element={<EmployeeProtectedRoute><EmployeeLayout><EmployeePayslips /></EmployeeLayout></EmployeeProtectedRoute>} />
+          {/* Employee Routes with Footer (EmployeeLayout + EmployeePageWrapper) */}
+          <Route
+            path="/employee-dashboard"
+            element={
+              <EmployeeProtectedRoute>
+                <EmployeePageWrapper>
+                  <EmployeeLayout>
+                    <EmployeeDashboard />
+                  </EmployeeLayout>
+                </EmployeePageWrapper>
+              </EmployeeProtectedRoute>
+            }
+          />
+          <Route
+            path="/employee-profile"
+            element={
+              <EmployeeProtectedRoute>
+                <EmployeePageWrapper>
+                  <EmployeeLayout>
+                    <EmployeeProfile />
+                  </EmployeeLayout>
+                </EmployeePageWrapper>
+              </EmployeeProtectedRoute>
+            }
+          />
+          <Route
+            path="/employee-leave-request"
+            element={
+              <EmployeeProtectedRoute>
+                <EmployeePageWrapper>
+                  <EmployeeLayout>
+                    <EmployeeLeaveRequest />
+                  </EmployeeLayout>
+                </EmployeePageWrapper>
+              </EmployeeProtectedRoute>
+            }
+          />
+          <Route
+            path="/employee-notifications"
+            element={
+              <EmployeeProtectedRoute>
+                <EmployeePageWrapper>
+                  <EmployeeLayout>
+                    <EmployeeNotificationList employeeId={JSON.parse(localStorage.getItem('employee'))?.id} />
+                  </EmployeeLayout>
+                </EmployeePageWrapper>
+              </EmployeeProtectedRoute>
+            }
+          />
+          <Route
+            path="/employee-payslips"
+            element={
+              <EmployeeProtectedRoute>
+                <EmployeePageWrapper>
+                  <EmployeeLayout>
+                    <EmployeePayslips />
+                  </EmployeeLayout>
+                </EmployeePageWrapper>
+              </EmployeeProtectedRoute>
+            }
+          />
 
           {/* 404 Page */}
           <Route path="*" element={<div style={{ padding: 20 }}><h2>404 - Page not found</h2></div>} />

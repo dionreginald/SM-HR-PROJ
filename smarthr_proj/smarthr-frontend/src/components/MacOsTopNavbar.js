@@ -12,8 +12,20 @@ import {
   MenuItem,
   Switch,
   Button,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Collapse,
+  Divider,
 } from '@mui/material';
 import { styled, alpha, useTheme } from '@mui/material/styles';
+
+import MenuIcon from '@mui/icons-material/Menu';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 
 // Icons
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -28,17 +40,14 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import PaidOutlinedIcon from '@mui/icons-material/PaidOutlined';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import EventIcon from '@mui/icons-material/Event';
-import Brightness4Icon from '@mui/icons-material/Brightness4'; // Moon icon for dark mode
-import Brightness7Icon from '@mui/icons-material/Brightness7'; // Sun icon for light mode
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 
-// Import your custom theme context
-import { useThemeContext } from '../contexts/ThemeContext'; // Adjust path if necessary
+import { useThemeContext } from '../contexts/ThemeContext';
 
-// Import your logo images from the public folder
-const SmartHRLogo = "/images/smarthr-logo.png"; // Default (light mode) logo
-const SmartHRLogoDark = "/images/smarthr-logo.png"; // Logo for dark mode
+const SmartHRLogo = "/images/smarthr-logo.png";
+const SmartHRLogoDark = "/images/smarthr-logo.png";
 
-// Styled Components (Adapted for theme modes)
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
   backgroundColor: alpha(theme.palette.background.paper, 0.85),
   backdropFilter: 'blur(15px)',
@@ -69,44 +78,44 @@ const StyledToolbar = styled(Toolbar)(({ theme }) => ({
 const NavGroup = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
-  gap: theme.spacing(1), // Adjust gap as needed for text buttons
+  gap: theme.spacing(1),
+  [`@media (max-width:600px)`]: {
+    display: 'none',
+  },
 }));
 
-// Adapted from NavIconButton to be a full Button with text
 const NavStyledButton = styled(Button)(({ theme, active }) => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  minWidth: '100px', // Increased minWidth to accommodate text
+  minWidth: '100px',
   height: '45px',
-  borderRadius: '25px', // Pill shape
+  borderRadius: '25px',
   transition: 'background-color 0.3s ease, transform 0.2s ease, color 0.3s ease, box-shadow 0.3s ease',
-  textTransform: 'none', // Keep text as is
+  textTransform: 'none',
   fontSize: '0.9rem',
   fontWeight: 600,
-  padding: theme.spacing(0.8, 1.5), // Adjust padding for text content
-
+  padding: theme.spacing(0.8, 1.5),
   backgroundColor: active ? theme.palette.primary.main : 'transparent',
-  color: active ? '#ffffff' : theme.palette.text.secondary, // Text color adapts to theme
+  color: active ? '#fff' : theme.palette.text.secondary,
   boxShadow: active ? `0 4px 12px ${alpha(theme.palette.primary.main, 0.4)}` : 'none',
-  
   '&:hover': {
-    backgroundColor: active ? theme.palette.primary.main : alpha(theme.palette.text.secondary, 0.1), // Hover background
-    color: active ? '#ffffff' : theme.palette.text.primary, // Hover text color
-    transform: 'scale(1.05)', // Slightly smaller scale for text buttons
-    boxShadow: active ? `0 6px 16px ${alpha(theme.palette.primary.main, 0.5)}` : `0 2px 8px ${alpha(theme.palette.text.primary, 0.15)}`,
+    backgroundColor: active ? theme.palette.primary.main : alpha(theme.palette.text.secondary, 0.1),
+    color: active ? '#fff' : theme.palette.text.primary,
+    transform: 'scale(1.05)',
+    boxShadow: active
+      ? `0 6px 16px ${alpha(theme.palette.primary.main, 0.5)}`
+      : `0 2px 8px ${alpha(theme.palette.text.primary, 0.15)}`,
   },
-
   '& .MuiButton-startIcon': {
-    marginRight: theme.spacing(0.8), // Space between icon and text
+    marginRight: theme.spacing(0.8),
     fontSize: '20px',
-    color: 'inherit', // Icon color inherits from button text color
+    color: 'inherit',
   },
 }));
 
-// Retaining StyledIconButton for standalone icons (like settings, logout, theme toggle)
 const NavActionIconButton = styled(IconButton)(({ theme }) => ({
-  color: theme.palette.text.secondary, // Muted text color for icons
+  color: theme.palette.text.secondary,
   transition: 'transform 0.3s ease, background-color 0.3s ease, color 0.3s ease',
   padding: theme.spacing(1.2),
   borderRadius: '12px',
@@ -114,6 +123,9 @@ const NavActionIconButton = styled(IconButton)(({ theme }) => ({
     backgroundColor: alpha(theme.palette.primary.main, 0.15),
     color: theme.palette.primary.main,
     transform: 'scale(1.1)',
+  },
+  [`@media (max-width:600px)`]: {
+    display: 'none',
   },
 }));
 
@@ -123,8 +135,7 @@ const LogoImage = styled('img')({
   objectFit: 'contain',
 });
 
-
-// --- Navigation Items with Concise Text Labels and Sub-Menus ---
+// Navigation Items
 const navItems = [
   { name: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
   {
@@ -163,7 +174,7 @@ const navItems = [
   },
 ];
 
-// Helper to determine if a main nav item should be 'selected' due to its submenu item being active
+// Helper to check active nav
 const isParentActive = (item, locationPathname) => {
   if (locationPathname === item.path) return true;
   if (item.subItems) {
@@ -172,13 +183,17 @@ const isParentActive = (item, locationPathname) => {
   return false;
 };
 
-// --- MacOsTopNavbar Component ---
 export default function MacOsTopNavbar() {
   const location = useLocation();
-  const theme = useTheme(); // Access the current theme for colors
-  const { toggleColorMode, mode } = useThemeContext(); // Get the toggle function and current mode
+  const theme = useTheme();
+  const { toggleColorMode, mode } = useThemeContext();
 
+  // Desktop submenu anchors
   const [anchorElMap, setAnchorElMap] = useState({});
+
+  // Mobile drawer state
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileSubmenusOpen, setMobileSubmenusOpen] = useState({});
 
   const handleMenuOpen = (event, itemName) => {
     setAnchorElMap(prev => ({ ...prev, [itemName]: event.currentTarget }));
@@ -190,151 +205,256 @@ export default function MacOsTopNavbar() {
 
   const handleLogout = () => {
     localStorage.removeItem('admin');
-    window.location.href = '/login'; // Redirect to login page
+    window.location.href = '/login';
+  };
+
+  const toggleMobileDrawer = () => {
+    setMobileOpen(!mobileOpen);
+  };
+
+  const toggleMobileSubmenu = (itemName) => {
+    setMobileSubmenusOpen(prev => ({
+      ...prev,
+      [itemName]: !prev[itemName],
+    }));
   };
 
   return (
-    <StyledAppBar>
-      <StyledToolbar>
-        {/* Left Logo */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Link to="/dashboard">
-            <LogoImage
-              src={mode === 'light' ? SmartHRLogo : SmartHRLogoDark} // Change logo based on theme mode
-              alt="SmartHR Logo"
-            />
-          </Link>
-        </Box>
-
-        {/* Center Dock Items with Text Labels and Dropdowns */}
-        <NavGroup>
-          {navItems.map((item) => (
-            <React.Fragment key={item.name}>
-              <Tooltip title={item.name} arrow>
-                {/* Use NavStyledButton for items with text labels */}
-                <NavStyledButton
-                  aria-controls={item.subItems ? `${item.name}-menu` : undefined}
-                  aria-haspopup={item.subItems ? "true" : undefined}
-                  onClick={item.subItems ? (event) => handleMenuOpen(event, item.name) : undefined}
-                  component={item.subItems ? 'button' : Link}
-                  to={!item.subItems ? item.path : undefined}
-                  active={isParentActive(item, location.pathname) ? 1 : 0} // Pass active state
-                  startIcon={item.icon} // Pass icon to startIcon prop
-                >
-                  {item.name} {/* Display the text label */}
-                </NavStyledButton>
-              </Tooltip>
-
-              {item.subItems && (
-                <Menu
-                  id={`${item.name}-menu`}
-                  anchorEl={anchorElMap[item.name]}
-                  open={Boolean(anchorElMap[item.name])}
-                  onClose={() => handleMenuClose(item.name)}
-                  MenuListProps={{
-                    'aria-labelledby': `nav-styled-button-${item.name}`, // Update aria-labelledby
-                  }}
-                  anchorOrigin={{
-                    vertical: 'bottom',
-                    horizontal: 'center',
-                  }}
-                  transformOrigin={{
-                    vertical: 'top',
-                    horizontal: 'center',
-                  }}
-                  PaperProps={{
-                    sx: {
-                      borderRadius: '12px',
-                      backgroundColor: alpha(theme.palette.background.paper, 0.95),
-                      boxShadow: `0 8px 24px ${alpha(theme.palette.text.primary, 0.15)}`,
-                      minWidth: '180px',
-                      border: `1px solid ${alpha(theme.palette.text.primary, 0.1)}`,
-                      overflow: 'hidden',
-                    },
-                  }}
-                >
-                  {item.subItems.map((subItem) => (
-                    <MenuItem
-                      key={subItem.name}
-                      component={Link}
-                      to={subItem.path}
-                      onClick={() => handleMenuClose(item.name)}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1.5,
-                        padding: '10px 15px',
-                        color: theme.palette.text.primary,
-                        fontWeight: 500,
-                        '&:hover': {
-                          backgroundColor: alpha(theme.palette.primary.main, 0.15),
-                          color: theme.palette.primary.main,
-                        },
-                        ...(location.pathname === subItem.path && {
-                          backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                          color: theme.palette.primary.main,
-                          fontWeight: 600,
-                        }),
-                      }}
-                    >
-                      {subItem.icon}
-                      <Typography variant="body2">{subItem.name}</Typography>
-                    </MenuItem>
-                  ))}
-                </Menu>
-              )}
-            </React.Fragment>
-          ))}
-        </NavGroup>
-
-        {/* Right Settings, Theme Toggle, and Logout */}
-        <NavGroup>
-          <Tooltip title="Profile" arrow>
-            <NavActionIconButton
-              component={Link}
-              to="/dashboard/profile"
-              // Removed .Mui-selected class from NavActionIconButton as it's not a NavStyledButton type
-              // If you want selection for these, you'd need a separate styled component or logic
-              size="large"
-            >
-              <SettingsIcon />
-            </NavActionIconButton>
-          </Tooltip>
-
-          {/* Dark Mode / Light Mode Toggle Switch */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              // Optional: Add some padding/background to the toggle switch itself if desired
-              // backgroundColor: alpha(theme.palette.text.secondary, 0.05),
-              // borderRadius: '12px',
-              // padding: '4px 8px',
-              // gap: '4px',
-            }}
-          >
-            <Tooltip title="Light Mode" arrow>
-              <Brightness7Icon sx={{ color: mode === 'light' ? theme.palette.primary.main : theme.palette.text.secondary }} />
-            </Tooltip>
-            <Switch
-              checked={mode === 'dark'}
-              onChange={toggleColorMode}
-              inputProps={{ 'aria-label': 'toggle dark mode' }}
-              color="primary" // Uses primary color for checked state
-            />
-            <Tooltip title="Dark Mode" arrow>
-              <Brightness4Icon sx={{ color: mode === 'dark' ? theme.palette.primary.main : theme.palette.text.secondary }} />
-            </Tooltip>
+    <>
+      <StyledAppBar>
+        <StyledToolbar>
+          {/* Left Logo */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center' }}>
+              <LogoImage
+                src={mode === 'light' ? SmartHRLogo : SmartHRLogoDark}
+                alt="SmartHR Logo"
+              />
+            </Link>
           </Box>
 
+          {/* This Box pushes the hamburger icon to the right */}
+          <Box sx={{ flexGrow: 1 }} />
 
-          <Tooltip title="Logout" arrow>
-            <NavActionIconButton onClick={handleLogout} size="large">
-              <LogoutIcon />
-            </NavActionIconButton>
-          </Tooltip>
-        </NavGroup>
-      </StyledToolbar>
-    </StyledAppBar>
+          {/* Mobile Hamburger Icon on the right */}
+          <Box sx={{ display: { xs: 'flex', sm: 'none' }, alignItems: 'center' }}>
+            <IconButton
+              color='secondary'
+              edge="end"
+              aria-label="menu"
+              onClick={toggleMobileDrawer}
+              size="large"
+            >
+              <MenuIcon />
+            </IconButton>
+          </Box>
+
+          {/* Desktop Nav Buttons */}
+          <NavGroup>
+            {navItems.map((item) => (
+              <React.Fragment key={item.name}>
+                <Tooltip title={item.name} arrow>
+                  <NavStyledButton
+                    aria-controls={item.subItems ? `${item.name}-menu` : undefined}
+                    aria-haspopup={item.subItems ? "true" : undefined}
+                    onClick={item.subItems ? (event) => handleMenuOpen(event, item.name) : undefined}
+                    component={item.subItems ? 'button' : Link}
+                    to={!item.subItems ? item.path : undefined}
+                    active={isParentActive(item, location.pathname) ? 1 : 0}
+                    startIcon={item.icon}
+                  >
+                    {item.name}
+                  </NavStyledButton>
+                </Tooltip>
+
+                {item.subItems && (
+                  <Menu
+                    id={`${item.name}-menu`}
+                    anchorEl={anchorElMap[item.name]}
+                    open={Boolean(anchorElMap[item.name])}
+                    onClose={() => handleMenuClose(item.name)}
+                    MenuListProps={{
+                      'aria-labelledby': `nav-styled-button-${item.name}`,
+                    }}
+                    anchorOrigin={{
+                      vertical: 'bottom',
+                      horizontal: 'center',
+                    }}
+                    transformOrigin={{
+                      vertical: 'top',
+                      horizontal: 'center',
+                    }}
+                    PaperProps={{
+                      sx: {
+                        borderRadius: '12px',
+                        backgroundColor: alpha(theme.palette.background.paper, 0.95),
+                        boxShadow: `0 8px 24px ${alpha(theme.palette.text.primary, 0.15)}`,
+                        minWidth: '180px',
+                        border: `1px solid ${alpha(theme.palette.text.primary, 0.1)}`,
+                        overflow: 'hidden',
+                      },
+                    }}
+                  >
+                    {item.subItems.map((subItem) => (
+                      <MenuItem
+                        key={subItem.name}
+                        component={Link}
+                        to={subItem.path}
+                        onClick={() => handleMenuClose(item.name)}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1.5,
+                          padding: '10px 15px',
+                          color: theme.palette.text.primary,
+                          fontWeight: 500,
+                          '&:hover': {
+                            backgroundColor: alpha(theme.palette.primary.main, 0.15),
+                            color: theme.palette.primary.main,
+                          },
+                          ...(location.pathname === subItem.path && {
+                            backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                            color: theme.palette.primary.main,
+                            fontWeight: 600,
+                          }),
+                        }}
+                      >
+                        {subItem.icon}
+                        <Typography variant="body2">{subItem.name}</Typography>
+                      </MenuItem>
+                    ))}
+                  </Menu>
+                )}
+              </React.Fragment>
+            ))}
+          </NavGroup>
+
+          {/* Right Action Icons (hidden on mobile) */}
+          <NavGroup>
+            <Tooltip title="Profile" arrow>
+              <NavActionIconButton component={Link} to="/dashboard/profile" size="large">
+                <SettingsIcon />
+              </NavActionIconButton>
+            </Tooltip>
+
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Tooltip title="Light Mode" arrow>
+                <Brightness7Icon sx={{ color: mode === 'light' ? theme.palette.primary.main : theme.palette.text.secondary }} />
+              </Tooltip>
+              <Switch
+                checked={mode === 'dark'}
+                onChange={toggleColorMode}
+                inputProps={{ 'aria-label': 'toggle dark mode' }}
+                color="primary"
+              />
+              <Tooltip title="Dark Mode" arrow>
+                <Brightness4Icon sx={{ color: mode === 'dark' ? theme.palette.primary.main : theme.palette.text.secondary }} />
+              </Tooltip>
+            </Box>
+
+            <Tooltip title="Logout" arrow>
+              <NavActionIconButton onClick={handleLogout} size="large">
+                <LogoutIcon />
+              </NavActionIconButton>
+            </Tooltip>
+          </NavGroup>
+        </StyledToolbar>
+      </StyledAppBar>
+
+      {/* Mobile Drawer */}
+      <Drawer
+        anchor="right"
+        open={mobileOpen}
+        onClose={toggleMobileDrawer}
+        PaperProps={{
+          sx: { width: 280, bgcolor: theme.palette.background.paper },
+        }}
+      >
+        <Box sx={{ width: '100%', mt: 2 }}>
+          <List>
+            {navItems.map((item) => {
+              const isOpen = !!mobileSubmenusOpen[item.name];
+              const hasSubmenu = !!item.subItems;
+
+              return (
+                <React.Fragment key={item.name}>
+                  <ListItem disablePadding>
+                    {hasSubmenu ? (
+                      <ListItemButton onClick={() => toggleMobileSubmenu(item.name)}>
+                        <ListItemIcon sx={{ color: isParentActive(item, location.pathname) ? theme.palette.primary.main : theme.palette.text.secondary }}>
+                          {item.icon}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={item.name}
+                          primaryTypographyProps={{
+                            fontWeight: isParentActive(item, location.pathname) ? 'bold' : 'normal',
+                            color: isParentActive(item, location.pathname) ? theme.palette.primary.main : 'inherit',
+                          }}
+                        />
+                        {isOpen ? <ExpandLess /> : <ExpandMore />}
+                      </ListItemButton>
+                    ) : (
+                      <ListItemButton
+                        component={Link}
+                        to={item.path}
+                        selected={location.pathname === item.path}
+                        onClick={toggleMobileDrawer}
+                      >
+                        <ListItemIcon sx={{ color: location.pathname === item.path ? theme.palette.primary.main : theme.palette.text.secondary }}>
+                          {item.icon}
+                        </ListItemIcon>
+                        <ListItemText primary={item.name} />
+                      </ListItemButton>
+                    )}
+                  </ListItem>
+                  {hasSubmenu && (
+                    <Collapse in={isOpen} timeout="auto" unmountOnExit>
+                      <List component="div" disablePadding>
+                        {item.subItems.map(subItem => (
+                          <ListItemButton
+                            key={subItem.name}
+                            sx={{ pl: 4 }}
+                            component={Link}
+                            to={subItem.path}
+                            selected={location.pathname === subItem.path}
+                            onClick={toggleMobileDrawer}
+                          >
+                            <ListItemIcon sx={{ color: location.pathname === subItem.path ? theme.palette.primary.main : theme.palette.text.secondary }}>
+                              {subItem.icon}
+                            </ListItemIcon>
+                            <ListItemText primary={subItem.name} />
+                          </ListItemButton>
+                        ))}
+                      </List>
+                    </Collapse>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </List>
+
+          <Divider />
+
+          {/* Theme toggle and Logout inside drawer for mobile */}
+          <Box sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Brightness7Icon sx={{ color: mode === 'light' ? theme.palette.primary.main : theme.palette.text.secondary }} />
+              <Switch
+                checked={mode === 'dark'}
+                onChange={toggleColorMode}
+                inputProps={{ 'aria-label': 'toggle dark mode' }}
+                color="primary"
+              />
+              <Brightness4Icon sx={{ color: mode === 'dark' ? theme.palette.primary.main : theme.palette.text.secondary }} />
+            </Box>
+            <Tooltip title="Logout" arrow>
+              <IconButton onClick={handleLogout} size="large" color="primary">
+                <LogoutIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
+      </Drawer>
+    </>
   );
 }

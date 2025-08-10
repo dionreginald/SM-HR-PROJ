@@ -1,4 +1,3 @@
-// src/components/Dashboard.jsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
@@ -9,6 +8,7 @@ import {
   Button,
   Dialog,
   DialogContent,
+  CircularProgress,
 } from '@mui/material';
 import { styled, alpha, useTheme } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
@@ -17,7 +17,7 @@ import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
-import TodayOutlinedIcon from '@mui/icons-material/TodayOutlined'; // Still useful for the new widget
+import TodayOutlinedIcon from '@mui/icons-material/TodayOutlined';
 
 import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined';
 import PaidOutlined from '@mui/icons-material/PaidOutlined';
@@ -38,13 +38,12 @@ import {
   LineElement,
   PointElement,
 } from 'chart.js';
-import { Bar, Line } from 'react-chartjs-2';
+import { Bar, Line, Doughnut } from 'react-chartjs-2';
 
-// Import for the calendar (still needed if you want to keep the calendar modal, but not for "Today's Date" widget)
 import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
-import moment from 'moment'; // Make sure this is imported
+import moment from 'moment';
 
 ChartJS.register(
   CategoryScale,
@@ -105,6 +104,7 @@ const DashboardCard = styled(Paper)(({ theme }) => ({
   flexDirection: 'column',
   justifyContent: 'space-between',
   animation: 'fadeInScale 0.6s ease-out forwards',
+  position: 'relative',
 }));
 
 const WidgetContent = styled(Box)({
@@ -162,143 +162,214 @@ const EventItem = styled(Box)(({ theme }) => ({
   },
 }));
 
+// --- New UpcomingEvents component ---
+const UpcomingEvents = ({ events, loading, error }) => {
+  const theme = useTheme();
+
+  return (
+    <DashboardCard sx={{ animationDelay: '0.8s' }}>
+      <Typography variant="h6" sx={{ color: theme.palette.text.primary, mb: 3 }}>
+        Upcoming Events
+      </Typography>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 5 }}>
+          <CircularProgress size={24} />
+        </Box>
+      ) : error ? (
+        <Typography variant="body1" sx={{ color: theme.palette.error.main }}>
+          {error}
+        </Typography>
+      ) : events.length === 0 ? (
+        <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
+          No upcoming events.
+        </Typography>
+      ) : (
+        events.map(event => (
+          <EventItem key={event.id || `${event.date}-${event.title}`}>
+            <CalendarMonthOutlinedIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                {event.title}
+              </Typography>
+              <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                {moment(event.date).format('MMM D, YYYY')}
+              </Typography>
+            </Box>
+          </EventItem>
+        ))
+      )}
+    </DashboardCard>
+  );
+};
+
 // --- Dashboard Component ---
 export default function Dashboard() {
   const theme = useTheme();
+  const adminData = JSON.parse(localStorage.getItem('admin'));
+
+  const [adminName, setAdminName] = useState("Admin");
+
   const [dashboardData, setDashboardData] = useState({
     totalEmployees: 0,
     pendingLeaves: 0,
     upcomingPayroll: 0,
     upcomingEventsCount: 0,
-    employeeSalaryVarianceChart: { labels: [], data: [] },
-    employeeSalaryChart: { labels: [], data: [] },
-    leaveTrendsChart: { labels: [], data: [] },
+    employeeCountChart: { labels: [], data: [] },
+    overtimeChart: { labels: [], data: [] },
+    payrollExpensesChart: { labels: [], data: [] },
   });
 
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [eventsError, setEventsError] = useState('');
   const [showCalendarModal, setShowCalendarModal] = useState(false);
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState(moment()); // Initialize with current date
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(moment());
+
+  // Function to fetch data from the unified dashboard endpoint
+  const fetchDashboardData = async () => {
+    try {
+      const res = await axios.get('http://localhost/smarthr_proj/dashboard_fetch_data.php');
+      const data = res.data;
+
+      const employees = data.employees || [];
+      const leaves = data.leaves || [];
+      const payrolls = data.payrolls || [];
+      const events = data.events || [];
+
+      // Process the data for the dashboard
+      const totalEmployees = employees.length;
+      const pendingLeaves = leaves.filter(l => l.status === 'Pending').length;
+      const upcomingPayroll = payrolls.reduce((sum, p) => sum + parseFloat(p.total_salary || 0), 0);
+
+      const today = moment().startOf('day');
+      const filteredEvents = events.filter(ev => {
+        const eventDate = moment(ev.date).startOf('day');
+        return eventDate.isSameOrAfter(today);
+      });
+      const upcomingEventsCount = filteredEvents.length;
+
+      // Charts data
+      const employeeCountChart = data.employeeCountChart || { labels: [], data: [] };
+      const overtimeChart = data.overtimeChart || { labels: [], data: [] };
+      const payrollExpensesChart = data.payrollExpensesChart || { labels: [], data: [] };
+
+      setDashboardData({
+        totalEmployees,
+        pendingLeaves,
+        upcomingPayroll,
+        upcomingEventsCount,
+        employeeCountChart,
+        overtimeChart,
+        payrollExpensesChart,
+      });
+
+      setUpcomingEvents(filteredEvents);
+      setEventsError('');
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      setEventsError('Failed to load dashboard data.');
+    } finally {
+      setEventsLoading(false);
+    }
+  };
+
+  // Function to fetch upcoming events specifically from events.php
+  const fetchUpcomingEvents = async () => {
+    setEventsLoading(true);
+    try {
+      // Use the provided events.php endpoint
+      const res = await axios.get('http://localhost/smarthr_proj/events.php');
+      const events = res.data;
+
+      // Filter events to only show upcoming ones
+      const today = moment().startOf('day');
+      const filteredEvents = events.filter(ev => {
+        // Ensure date is valid and format is consistent
+        if (ev.date && ev.date !== '0000-00-00') {
+          const eventDate = moment(ev.date).startOf('day');
+          return eventDate.isSameOrAfter(today);
+        }
+        return false;
+      }).sort((a, b) => moment(a.date).diff(moment(b.date))); // Sort by date
+
+      setUpcomingEvents(filteredEvents);
+      setDashboardData(prevData => ({ ...prevData, upcomingEventsCount: filteredEvents.length }));
+      setEventsError('');
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      setEventsError('Failed to load upcoming events.');
+    } finally {
+      setEventsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function fetchDashboardData() {
+    // This effect handles fetching all dashboard data except events
+    const fetchCoreDashboardData = async () => {
       try {
-        const [empRes, leaveRes, payRes, eventsRes] = await Promise.all([
-          axios.get('http://localhost/smarthr_proj/dashboard_fetch_employees.php'),
-          axios.get('http://localhost/smarthr_proj/dashboard_fetch_leave_requests.php'),
-          axios.get('http://localhost/smarthr_proj/dashboard_fetch_payrolls.php'),
-          axios.get('http://localhost/smarthr_proj/events.php'),
-        ]);
-
-        const employees = empRes.data || [];
-        const leaves = leaveRes.data || [];
-        const payrolls = payRes.data || [];
-        const events = Array.isArray(eventsRes.data) ? eventsRes.data : [];
-
+        const res = await axios.get('http://localhost/smarthr_proj/dashboard_fetch_data.php');
+        const data = res.data;
+        // ... (existing processing logic) ...
+        const employees = data.employees || [];
+        const leaves = data.leaves || [];
+        const payrolls = data.payrolls || [];
+        
         const totalEmployees = employees.length;
         const pendingLeaves = leaves.filter(l => l.status === 'Pending').length;
         const upcomingPayroll = payrolls.reduce((sum, p) => sum + parseFloat(p.total_salary || 0), 0);
-
-        const today = moment().startOf('day');
-        const filteredEvents = events.filter(ev => {
-          const eventDate = moment(ev.date).startOf('day');
-          return eventDate.isSameOrAfter(today);
-        });
-
-        const upcomingEventsCount = filteredEvents.length;
-
-        // -- Salary Variance & Average Salary calculations --
-        const salaryByDept = {};
-        employees.forEach(emp => {
-          const dept = emp.department || 'Unknown';
-          const sal = parseFloat(emp.salary || 0);
-          if (!salaryByDept[dept]) salaryByDept[dept] = [];
-          if (sal > 0) salaryByDept[dept].push(sal);
-        });
-
-        const salaryVarianceByDept = {};
-        const avgSalaryByDept = {};
-
-        for (const dept in salaryByDept) {
-          const salaries = salaryByDept[dept];
-          const n = salaries.length;
-          if (n === 0) {
-            salaryVarianceByDept[dept] = 0;
-            avgSalaryByDept[dept] = 0;
-          } else {
-            const mean = salaries.reduce((a,b) => a + b, 0) / n;
-            avgSalaryByDept[dept] = mean;
-            const variance = salaries.reduce((a,b) => a + (b - mean) ** 2, 0) / n;
-            salaryVarianceByDept[dept] = variance;
-          }
-        }
-
-        const departments = Object.keys(salaryByDept);
-
-        const employeeSalaryVarianceChart = {
-          labels: departments,
-          data: departments.map(dept => salaryVarianceByDept[dept]),
-        };
-
-        const employeeSalaryChart = {
-          labels: departments,
-          data: departments.map(dept => avgSalaryByDept[dept]),
-        };
-
-        // Monthly leave trends
-        const monthlyLeaveCounts = leaves.reduce((acc, leave) => {
-          if (leave.request_date) {
-            const date = moment(leave.request_date);
-            const month = date.format('MMM YYYY');
-            acc[month] = (acc[month] || 0) + 1;
-          }
-          return acc;
-        }, {});
-
-        const sortedMonths = Object.keys(monthlyLeaveCounts).sort((a, b) => {
-          const dateA = moment(a, 'MMM YYYY');
-          const dateB = moment(b, 'MMM YYYY');
-          return dateA.diff(dateB);
-        });
-
-        const leaveTrendsChart = {
-          labels: sortedMonths,
-          data: sortedMonths.map(month => monthlyLeaveCounts[month]),
-        };
-
+        
+        const employeeCountChart = data.employeeCountChart || { labels: [], data: [] };
+        const overtimeChart = data.overtimeChart || { labels: [], data: [] };
+        const payrollExpensesChart = data.payrollExpensesChart || { labels: [], data: [] };
+        
         setDashboardData({
           totalEmployees,
           pendingLeaves,
           upcomingPayroll,
-          upcomingEventsCount,
-          employeeSalaryVarianceChart,
-          employeeSalaryChart,
-          leaveTrendsChart,
+          upcomingEventsCount: 0, // This will be updated by the other effect
+          employeeCountChart,
+          overtimeChart,
+          payrollExpensesChart,
         });
 
-        setUpcomingEvents(filteredEvents);
-        setEventsError('');
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        setEventsError('Failed to load upcoming events');
-      } finally {
-        setEventsLoading(false);
+        console.error('Error fetching core dashboard data:', error);
       }
-    }
-    fetchDashboardData();
+    };
+
+    fetchCoreDashboardData();
+    fetchUpcomingEvents(); // Call the dedicated events fetch function
   }, []);
 
-  const adminName = "Admin";
+  // Effect to fetch admin's full name
+  useEffect(() => {
+    if (adminData?.id) {
+      const fetchAdminName = async () => {
+        try {
+          const res = await axios.get(`http://localhost/smarthr_proj/admin_get_profile.php?id=${adminData.id}`);
+          if (res.data.success) {
+            setAdminName(res.data.admin.full_name || adminData.full_name || "Admin");
+          } else {
+            console.error("Failed to fetch admin profile:", res.data.message);
+            setAdminName(adminData.full_name || "Admin");
+          }
+        } catch (error) {
+          console.error("Error fetching admin profile:", error);
+          setAdminName(adminData.full_name || "Admin");
+        }
+      };
+      fetchAdminName();
+    }
+  }, [adminData]);
 
-  // Function to close the calendar modal
+
   const handleCloseCalendarModal = () => {
     setShowCalendarModal(false);
   };
 
-  // Helper function for common chart options that adapt to theme
-  const getChartOptions = (titleText) => ({
+  const getChartOptions = (titleText, showLegend = false) => ({
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       title: {
         display: true,
@@ -306,7 +377,14 @@ export default function Dashboard() {
         font: { size: 18, weight: 'bold' },
         color: theme.palette.text.primary,
       },
-      legend: { display: false },
+      legend: {
+        display: showLegend,
+        position: 'bottom',
+        labels: {
+          color: theme.palette.text.secondary,
+          font: { size: 12 },
+        },
+      },
       tooltip: {
         backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.8)',
         titleFont: { size: 14, weight: 'bold' },
@@ -329,35 +407,76 @@ export default function Dashboard() {
     },
   });
 
-  // Chart Data & Options for Salary Variance Chart
-  const employeeSalaryVarianceChartData = {
-    labels: dashboardData.employeeSalaryVarianceChart.labels,
+  const employeeCountChartData = {
+    labels: dashboardData.employeeCountChart.labels,
     datasets: [
       {
-        label: 'Salary Variance',
-        data: dashboardData.employeeSalaryVarianceChart.data,
-        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 99, 132, 0.9)' : 'rgba(255, 99, 132, 0.7)',
-        borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 99, 132, 1)' : 'rgba(255, 99, 132, 1)',
+        label: 'Employee Count',
+        data: dashboardData.employeeCountChart.data,
+        backgroundColor: [
+          '#FF6384',
+          '#36A2EB',
+          '#FFCE56',
+          '#4BC0C0',
+          '#9966FF',
+          '#FF9F40'
+        ],
+        hoverBackgroundColor: [
+          '#FF6384',
+          '#36A2EB',
+          '#FFCE56',
+          '#4BC0C0',
+          '#9966FF',
+          '#FF9F40'
+        ],
+      },
+    ],
+  };
+  const employeeCountOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      title: {
+        display: true,
+        text: 'Employee Distribution by Department',
+        font: { size: 18, weight: 'bold' },
+        color: theme.palette.text.primary,
+      },
+      legend: {
+        display: true,
+        position: 'bottom',
+        labels: { color: theme.palette.text.secondary },
+      },
+    },
+  };
+
+  const overtimeChartData = {
+    labels: dashboardData.overtimeChart.labels,
+    datasets: [
+      {
+        label: 'Total Overtime Hours',
+        data: dashboardData.overtimeChart.data,
+        backgroundColor: theme.palette.primary.main,
+        borderColor: theme.palette.primary.main,
         borderWidth: 1,
         borderRadius: 5,
       },
     ],
   };
+  const overtimeOptions = getChartOptions('Total Overtime Hours by Department');
+  overtimeOptions.scales.y.beginAtZero = true;
 
-  const employeeSalaryVarianceOptions = getChartOptions('Employee Salary Variance by Department');
-
-  // Chart Data & Options for Average Salary Chart
-  const employeeSalaryChartData = {
-    labels: dashboardData.employeeSalaryChart.labels,
+  const payrollExpensesChartData = {
+    labels: dashboardData.payrollExpensesChart.labels,
     datasets: [
       {
-        label: 'Average Salary (Rs.)',
-        data: dashboardData.employeeSalaryChart.data,
-        fill: false,
-        borderColor: theme.palette.primary.main,
-        backgroundColor: theme.palette.primary.main,
+        label: 'Total Payroll (Rs.)',
+        data: dashboardData.payrollExpensesChart.data,
+        fill: true,
+        backgroundColor: alpha(theme.palette.success.main, 0.2),
+        borderColor: theme.palette.success.main,
         tension: 0.3,
-        pointBackgroundColor: theme.palette.primary.main,
+        pointBackgroundColor: theme.palette.success.main,
         pointBorderColor: theme.palette.background.paper,
         pointBorderWidth: 2,
         pointRadius: 5,
@@ -365,14 +484,11 @@ export default function Dashboard() {
       },
     ],
   };
-
-  const employeeSalaryOptions = getChartOptions('Average Employee Salary by Department');
-  employeeSalaryOptions.scales.y.beginAtZero = true;
+  const payrollExpensesOptions = getChartOptions('Monthly Payroll Expenses');
+  payrollExpensesOptions.scales.y.beginAtZero = true;
   
-  // Format today's date
-  const todayFormatted = moment().format('Do [of] MMMM YYYY'); // 'Do' for ordinal, '[of]' to escape 'of' literal
+  const todayFormatted = moment().format('Do [of] MMMM YYYY');
 
-  // Updated Summary Widgets to include Today's Date
   const summaryWidgets = [
     {
       id: 1,
@@ -391,28 +507,19 @@ export default function Dashboard() {
     {
       id: 3,
       title: 'Upcoming Payroll',
-      value: `Rs. ${dashboardData.upcomingPayroll.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+      value: `Rs. ${dashboardData.upcomingPayroll.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}.00`,
       icon: <AttachMoneyIcon />,
       color: '#4caf50',
     },
-    {
-      id: 4,
-      title: 'Upcoming Events',
-      value: dashboardData.upcomingEventsCount.toLocaleString(),
-      icon: <CalendarMonthOutlinedIcon />,
-      color: '#ff5722',
-    },
-    // New Widget for Today's Date
     {
       id: 5,
       title: 'Today\'s Date',
       value: todayFormatted,
       icon: <TodayOutlinedIcon />,
-      color: '#673ab7', // A new color for this widget, or adjust as desired
+      color: '#673ab7',
     },
   ];
 
-  // Quick Actions (removed "Today's Date" from here)
   const quickActions = [
     { name: 'Add Employee', icon: <PersonAddOutlinedIcon />, path: '/dashboard/add-employee' },
     { name: 'Add Payroll', icon: <PaidOutlined />, path: '/dashboard/add-payroll' },
@@ -420,29 +527,6 @@ export default function Dashboard() {
     { name: 'Leave Requests', icon: <EventBusyOutlinedIcon />, path: '/dashboard/leave-requests' },
     { name: 'Notifications', icon: <NotificationsOutlinedIcon />, path: '/dashboard/notifications' },
   ];
-
-  // Chart for Leave Trends
-  const leaveTrendsChartData = {
-    labels: dashboardData.leaveTrendsChart.labels,
-    datasets: [
-      {
-        label: 'Leave Requests',
-        data: dashboardData.leaveTrendsChart.data,
-        fill: true,
-        backgroundColor: alpha(theme.palette.primary.main, 0.2),
-        borderColor: theme.palette.primary.main,
-        tension: 0.3,
-        pointBackgroundColor: theme.palette.primary.main,
-        pointBorderColor: theme.palette.background.paper,
-        pointBorderWidth: 2,
-        pointRadius: 5,
-        pointHoverRadius: 7,
-      },
-    ],
-  };
-
-  const leaveTrendsOptions = getChartOptions('Monthly Leave Trends');
-  leaveTrendsOptions.scales.y.beginAtZero = true;
 
   return (
     <DashboardContainer>
@@ -460,11 +544,9 @@ export default function Dashboard() {
           </Box>
         </DashboardContentHeader>
 
-        {/* Summary Widgets */}
-        {/* Adjusted Grid spacing for 5 widgets, 2.4/5=0.48 so need 12/5 = 2.4 or 12/6=2 per item for 5-6 items in a row */}
-        <Grid container spacing={3} sx={{ mt: 0 }}>
+        <Grid container spacing={3}>
           {summaryWidgets.map((widget, index) => (
-            <Grid item xs={12} sm={6} md={2.4} key={widget.id}> {/* Changed md={3} to md={2.4} for 5 items */}
+            <Grid item xs={12} sm={6} md={2.4} key={widget.id}>
               <DashboardCard sx={{ animationDelay: `${0.1 * index}s` }}>
                 <Typography variant="subtitle1" sx={{ color: theme.palette.text.secondary, fontWeight: 500, mb: 1 }}>
                   {widget.title}
@@ -480,101 +562,63 @@ export default function Dashboard() {
               </DashboardCard>
             </Grid>
           ))}
-        </Grid>
 
-        {/* Quick Actions Section (no change needed here for the quick actions themselves, as "Today's Date" is removed) */}
-        <Box sx={{ mt: 8 }}>
-          <DashboardCard sx={{ animationDelay: '0.4s' }}>
-            <Typography variant="h6" sx={{ color: theme.palette.text.primary, mb: 2 }}>Quick Actions</Typography>
-            <Grid container spacing={2}>
-              {quickActions.map((action) => (
-                <Grid item xs={6} sm={4} md={2.4} key={action.name}>
-                  {/* Quick actions will always be links now that Today's Date is a widget */}
-                  <QuickActionButton
-                    variant="outlined"
-                    fullWidth
-                    component={Link}
-                    to={action.path}
-                    sx={{
-                      flexDirection: 'column',
-                      py: 3,
-                      borderColor: alpha(theme.palette.text.primary, 0.2),
-                      '&:hover': {
-                        borderColor: theme.palette.primary.main,
-                        backgroundColor: alpha(theme.palette.primary.main, 0.05),
-                      },
-                      '& .MuiSvgIcon-root': { fontSize: '2.5rem', mb: 1 },
-                      fontWeight: 600,
-                    }}
-                  >
-                    {action.icon}
-                    {action.name}
-                  </QuickActionButton>
-                </Grid>
-              ))}
-            </Grid>
-          </DashboardCard>
-        </Box>
+          <Grid item xs={12}>
+            <DashboardCard sx={{ animationDelay: '0.4s' }}>
+              <Typography variant="h6" sx={{ color: theme.palette.text.primary, mb: 2 }}>Quick Actions</Typography>
+              <Grid container spacing={2}>
+                {quickActions.map((action) => (
+                  <Grid item xs={6} sm={4} md={2.4} key={action.name}>
+                    <QuickActionButton
+                      variant="outlined"
+                      fullWidth
+                      component={Link}
+                      to={action.path}
+                      sx={{
+                        flexDirection: 'column',
+                        py: 3,
+                        borderColor: alpha(theme.palette.text.primary, 0.2),
+                        '&:hover': {
+                          borderColor: theme.palette.primary.main,
+                          backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                        },
+                        '& .MuiSvgIcon-root': { fontSize: '2.5rem', mb: 1 },
+                        fontWeight: 600,
+                      }}
+                    >
+                      {action.icon}
+                      {action.name}
+                    </QuickActionButton>
+                  </Grid>
+                ))}
+              </Grid>
+            </DashboardCard>
+          </Grid>
 
-        {/* Charts Section */}
-        <Grid container spacing={3} sx={{ mt: 3 }}>
           <Grid item xs={12} md={6}>
             <DashboardCard sx={{ animationDelay: '0.5s' }}>
-              <Bar data={employeeSalaryVarianceChartData} options={employeeSalaryVarianceOptions} />
+              <Doughnut data={employeeCountChartData} options={employeeCountOptions} />
             </DashboardCard>
           </Grid>
 
           <Grid item xs={12} md={6}>
             <DashboardCard sx={{ animationDelay: '0.6s' }}>
-              <Line data={employeeSalaryChartData} options={employeeSalaryOptions} />
+              <Bar data={overtimeChartData} options={overtimeOptions} />
             </DashboardCard>
           </Grid>
 
           <Grid item xs={12}>
             <DashboardCard sx={{ animationDelay: '0.7s' }}>
-              <Line data={leaveTrendsChartData} options={leaveTrendsOptions} />
+              <Line data={payrollExpensesChartData} options={payrollExpensesOptions} />
             </DashboardCard>
           </Grid>
-        </Grid>
 
-        {/* Upcoming Events Section */}
-        <Box sx={{ mt: 5 }}>
-          <DashboardCard sx={{ animationDelay: '0.8s' }}>
-            <Typography variant="h6" sx={{ color: theme.palette.text.primary, mb: 3 }}>
-              Upcoming Events
-            </Typography>
-            {eventsLoading ? (
-              <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                Loading events...
-              </Typography>
-            ) : eventsError ? (
-              <Typography variant="body1" sx={{ color: theme.palette.error.main }}>
-                {eventsError}
-              </Typography>
-            ) : upcomingEvents.length === 0 ? (
-              <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                No upcoming events.
-              </Typography>
-            ) : (
-              upcomingEvents.map(event => (
-                <EventItem key={event.id || event.date + event.title}>
-                  <CalendarMonthOutlinedIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
-                  <Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
-                      {event.title}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                      {moment(event.date).format('MMM D, YYYY')}
-                    </Typography>
-                  </Box>
-                </EventItem>
-              ))
-            )}
-          </DashboardCard>
-        </Box>
+          <Grid item xs={12}>
+            <UpcomingEvents events={upcomingEvents} loading={eventsLoading} error={eventsError} />
+          </Grid>
+        </Grid>
       </MainContent>
 
-      {/* Calendar Modal (still available if you want to reuse it for something else, e.g., an "Open Calendar" button) */}
       <Dialog open={showCalendarModal} onClose={handleCloseCalendarModal} maxWidth="sm" fullWidth>
         <DialogContent sx={{ backgroundColor: theme.palette.background.paper, borderRadius: '16px', p: 3 }}>
           <Typography variant="h6" sx={{ color: theme.palette.text.primary, mb: 2 }}>

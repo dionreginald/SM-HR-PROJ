@@ -1,317 +1,359 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+// Material-UI Imports
 import {
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions,
-  CircularProgress, Alert, Box, Typography
+    Box,
+    Typography,
+    Paper,
+    TextField,
+    Button,
+    TableContainer,
+    Table,
+    TableHead,
+    TableRow,
+    TableCell,
+    TableBody,
+    CircularProgress,
+    Snackbar,
+    Alert,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    IconButton,
 } from '@mui/material';
-import { styled, useTheme, alpha } from '@mui/material/styles'; // Import useTheme and alpha
+import { styled, useTheme, alpha } from '@mui/material/styles';
+
+// Material-UI Icons
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import SearchIcon from '@mui/icons-material/Search';
 import MacOsTopNavbar from './MacOsTopNavbar';
 
 const API_URL = 'http://localhost/smarthr_proj/events.php';
 
-// --- Styled Components for Dark Mode Compatibility ---
+// --- Styled Components (aligned with the target style) ---
 
 const PageContainer = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  flexDirection: 'column',
-  minHeight: '100vh',
-  backgroundColor: theme.palette.background.default, // Use theme background
-  color: theme.palette.text.primary, // Ensure default text color adapts
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100vh',
+    backgroundColor: theme.palette.background.default,
+    color: theme.palette.text.primary,
 }));
 
 const MainContent = styled(Box)(({ theme }) => ({
-  flexGrow: 1,
-  padding: theme.spacing(3),
-  maxWidth: 1000,
-  margin: '80px auto 20px', // Adjust margin to account for navbar and center content
-  [theme.breakpoints.down('sm')]: {
-    padding: theme.spacing(2),
-  },
+    flexGrow: 1,
+    padding: theme.spacing(3),
+    marginTop: '80px', // Adjusted for the navbar
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    [theme.breakpoints.down('sm')]: {
+        padding: theme.spacing(2),
+        marginTop: '70px',
+    },
+}));
+
+const ContentPaper = styled(Paper)(({ theme }) => ({
+    padding: theme.spacing(4),
+    borderRadius: '16px',
+    boxShadow: theme.palette.mode === 'dark'
+        ? `0 8px 30px ${alpha(theme.palette.common.black, 0.5)}`
+        : `0 8px 30px rgba(0, 0, 0, 0.1)`,
+    backgroundColor: theme.palette.background.paper,
+    width: '100%',
+    maxWidth: '1200px', // Set a max-width for content
+    animation: 'fadeInUp 0.7s ease-out forwards',
+    '@keyframes fadeInUp': {
+        "0%": { opacity: 0, transform: "translateY(20px)" },
+        "100%": { opacity: 1, transform: "translateY(0)" },
+    },
 }));
 
 const SectionTitle = styled(Typography)(({ theme }) => ({
-  fontWeight: 700,
-  color: theme.palette.text.primary, // Use primary text color
-  marginBottom: theme.spacing(3),
-  textAlign: 'center', // Center title
-}));
-
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(3),
-  borderRadius: theme.shape.borderRadius * 2,
-  backgroundColor: theme.palette.background.paper, // Use paper background
-  boxShadow: theme.palette.mode === 'dark'
-    ? `0px 4px 20px ${alpha(theme.palette.common.black, 0.5)}`
-    : `0px 4px 20px rgba(0,0,0,0.1)`,
-}));
-
-const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
-  marginTop: theme.spacing(3),
-  borderRadius: theme.shape.borderRadius,
-  boxShadow: theme.palette.mode === 'dark'
-    ? `0px 2px 10px ${alpha(theme.palette.common.black, 0.3)}`
-    : `0px 2px 10px rgba(0,0,0,0.05)`,
-}));
-
-const StyledTableHeadCell = styled(TableCell)(({ theme }) => ({
-  backgroundColor: theme.palette.primary.main,
-  color: theme.palette.primary.contrastText, // Text color contrasting with primary background
-  fontWeight: 600,
-  fontSize: '0.875rem',
-}));
-
-const StyledTableBodyCell = styled(TableCell)(({ theme }) => ({
-  color: theme.palette.text.primary, // Ensure cell text color adapts
-  borderBottom: `1px solid ${theme.palette.divider}`, // Use theme divider color
-}));
-
-const StyledTableRow = styled(TableRow)(({ theme }) => ({
-  '&:nth-of-type(odd)': {
-    backgroundColor: theme.palette.mode === 'dark'
-      ? alpha(theme.palette.background.paper, 0.7) // Slightly different shade for dark mode odd rows
-      : alpha(theme.palette.action.hover, 0.05), // Light stripe for light mode
-  },
-  '&:hover': {
-    backgroundColor: alpha(theme.palette.action.hover, theme.palette.mode === 'dark' ? 0.15 : 0.1), // Hover effect
-  },
-}));
-
-const StyledDialogContent = styled(DialogContent)(({ theme }) => ({
-  backgroundColor: theme.palette.background.paper,
-  color: theme.palette.text.primary,
-}));
-
-const StyledDialogActions = styled(DialogActions)(({ theme }) => ({
-  backgroundColor: theme.palette.background.paper,
+    fontWeight: 700,
+    color: theme.palette.text.primary,
+    marginBottom: theme.spacing(3),
+    textAlign: 'center',
 }));
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
-  '& .MuiOutlinedInput-root': {
-    backgroundColor: theme.palette.mode === 'dark' ? alpha(theme.palette.background.default, 0.5) : theme.palette.background.paper,
-    '& fieldset': {
-      borderColor: theme.palette.divider,
+    '& .MuiOutlinedInput-root': {
+        borderRadius: '8px',
+        backgroundColor: alpha(theme.palette.background.default, 0.5),
+        '& fieldset': { borderColor: theme.palette.divider },
+        '&:hover fieldset': { borderColor: theme.palette.primary.main },
+        '&.Mui-focused fieldset': { borderColor: theme.palette.primary.main, borderWidth: '2px' },
     },
-    '&:hover fieldset': {
-      borderColor: theme.palette.primary.main,
+    '& .MuiInputBase-input': {
+        color: theme.palette.text.primary,
     },
-    '&.Mui-focused fieldset': {
-      borderColor: theme.palette.primary.main,
-      borderWidth: '2px',
+    '& .MuiInputLabel-root': {
+        color: theme.palette.text.secondary,
     },
-  },
-  '& .MuiInputBase-input': {
+}));
+
+const ActionButton = styled(Button)(({ theme }) => ({
+    borderRadius: '10px',
+    fontWeight: 600,
+    textTransform: 'none',
+    padding: theme.spacing(1, 2.5),
+    transition: 'all 0.3s ease-in-out',
+    '&:hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: `0 4px 15px ${alpha(theme.palette.primary.main, 0.3)}`,
+    },
+}));
+
+// Table specific styles
+const StyledTableHeadCell = styled(TableCell)(({ theme }) => ({
+    backgroundColor: theme.palette.primary.main,
+    color: theme.palette.primary.contrastText,
+    fontWeight: 600,
+    fontSize: '0.875rem',
+    padding: '12px 16px',
+    whiteSpace: 'nowrap',
+}));
+
+const StyledTableBodyCell = styled(TableCell)(({ theme }) => ({
+    fontSize: '0.85rem',
+    padding: '12px 16px',
+    borderBottom: `1px solid ${theme.palette.divider}`,
     color: theme.palette.text.primary,
-  },
-  '& .MuiInputLabel-root': {
-    color: theme.palette.text.secondary,
-  },
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+    transition: 'background-color 0.2s ease-in-out',
+    '&:nth-of-type(odd)': {
+        backgroundColor: theme.palette.mode === 'dark'
+            ? alpha(theme.palette.grey[900], 0.5)
+            : alpha(theme.palette.grey[50], 0.5),
+    },
+    '&:hover': {
+        backgroundColor: alpha(theme.palette.primary.light, 0.1),
+    },
 }));
 
 
 export default function Events() {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [open, setOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [form, setForm] = useState({
-    id: null,
-    title: '',
-    date: '',
-    time: '',
-    description: ''
-  });
+    const [events, setEvents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState({ searchText: '' });
+    const [open, setOpen] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [form, setForm] = useState({ id: null, title: '', date: '', time: '', description: '' });
+    
+    // Snackbar state
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+    const [snackbarSeverity, setSnackbarSeverity] = useState('info');
 
-  const theme = useTheme(); // Access the theme object
+    const theme = useTheme();
 
-  // Fetch events on mount
-  useEffect(() => {
-    fetchEvents();
-  }, []);
+    useEffect(() => {
+        fetchEvents();
+    }, []);
 
-  const fetchEvents = async () => {
-    setLoading(true);
-    setErrorMsg('');
-    try {
-      const res = await fetch(API_URL);
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || `Failed to fetch events: ${res.status}`);
-      }
-      const data = await res.json();
-      setEvents(data);
-    } catch (err) {
-      setErrorMsg(err.message || 'Failed to load events.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    const handleSnackbarClose = (event, reason) => {
+        if (reason === 'clickaway') return;
+        setSnackbarOpen(false);
+    };
 
-  // Open dialog for Add or Edit
-  const handleOpen = (event = null) => {
-    if (event) {
-      setForm({ ...event });
-      setIsEditMode(true);
-    } else {
-      setForm({ id: null, title: '', date: '', time: '', description: '' });
-      setIsEditMode(false);
-    }
-    setOpen(true);
-  };
+    const showSnackbar = (message, severity) => {
+        setSnackbarMessage(message);
+        setSnackbarSeverity(severity);
+        setSnackbarOpen(true);
+    };
 
-  const handleClose = () => {
-    setOpen(false);
-    setForm({ id: null, title: '', date: '', time: '', description: '' });
-    setIsEditMode(false);
-  };
+    const fetchEvents = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get(API_URL);
+            if (res.data) {
+                setEvents(Array.isArray(res.data) ? res.data : []);
+            } else {
+                showSnackbar('Failed to load events: Invalid data format.', 'error');
+                setEvents([]);
+            }
+        } catch (err) {
+            console.error('Error fetching events:', err);
+            showSnackbar(err.response?.data?.message || err.message || 'An unknown error occurred.', 'error');
+            setEvents([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  // Form input change
-  const handleChange = (e) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+    const handleOpen = (event = null) => {
+        if (event) {
+            setForm({ ...event });
+            setIsEditMode(true);
+        } else {
+            setForm({ id: null, title: '', date: '', time: '', description: '' });
+            setIsEditMode(false);
+        }
+        setOpen(true);
+    };
 
-  // Submit Add or Edit
-  const handleSubmit = async () => {
-    const method = isEditMode ? 'PUT' : 'POST';
-    try {
-      const res = await fetch(API_URL, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || `Failed to ${isEditMode ? 'update' : 'add'} event`);
-      }
-      await fetchEvents(); // Re-fetch events to update the list
-      handleClose();
-    } catch (err) {
-      alert(err.message || 'Error saving event');
-    }
-  };
+    const handleClose = () => {
+        setOpen(false);
+    };
 
-  // Delete event by id
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this event?')) return;
-    try {
-      const res = await fetch(`${API_URL}?id=${id}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to delete event');
-      }
-      await fetchEvents(); // Re-fetch events to update the list
-    } catch (err) {
-      alert(err.message || 'Error deleting event');
-    }
-  };
+    const handleChange = (e) => {
+        setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    };
 
-  return (
-    <PageContainer>
-      <MacOsTopNavbar />
-      <MainContent>
-        <SectionTitle variant="h4">Manage Events</SectionTitle>
-        {errorMsg && <Alert severity="error" sx={{ mb: 2, bgcolor: alpha(theme.palette.error.main, 0.1), color: theme.palette.error.main }}>{errorMsg}</Alert>}
+    const handleSubmit = async () => {
+        const method = isEditMode ? 'put' : 'post';
+        const url = API_URL;
+        
+        try {
+            const res = await axios[method](url, form, {
+                headers: { 'Content-Type': 'application/json' },
+            });
 
-        <Button variant="contained" color="primary" onClick={() => handleOpen()} sx={{ mb: 2 }}>
-          Add Event
-        </Button>
+            if (res.data.success) {
+                showSnackbar(`Event ${isEditMode ? 'updated' : 'added'} successfully!`, 'success');
+                await fetchEvents();
+                handleClose();
+            } else {
+                throw new Error(res.data.message || 'An unknown error occurred');
+            }
+        } catch (err) {
+            console.error('Error saving event:', err);
+            showSnackbar(err.response?.data?.message || err.message, 'error');
+        }
+    };
 
-        {loading ? (
-          <Box sx={{ mt: 4, textAlign: 'center' }}>
-            <CircularProgress />
-            <Typography variant="h6" sx={{ mt: 2, color: 'text.secondary' }}>Loading Events...</Typography>
-          </Box>
-        ) : (
-          <StyledTableContainer component={StyledPaper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <StyledTableHeadCell>Title</StyledTableHeadCell>
-                  <StyledTableHeadCell>Date</StyledTableHeadCell>
-                  <StyledTableHeadCell>Time</StyledTableHeadCell>
-                  <StyledTableHeadCell>Description</StyledTableHeadCell>
-                  <StyledTableHeadCell>Actions</StyledTableHeadCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {events.length === 0 ? (
-                  <StyledTableRow>
-                    <StyledTableBodyCell colSpan={5} align="center">No events found.</StyledTableBodyCell>
-                  </StyledTableRow>
-                ) : (
-                  events.map((event) => (
-                    <StyledTableRow key={event.id}>
-                      <StyledTableBodyCell>{event.title}</StyledTableBodyCell>
-                      <StyledTableBodyCell>{event.date}</StyledTableBodyCell>
-                      <StyledTableBodyCell>{event.time}</StyledTableBodyCell>
-                      <StyledTableBodyCell>{event.description}</StyledTableBodyCell>
-                      <StyledTableBodyCell>
-                        <Button size="small" onClick={() => handleOpen(event)} sx={{ mr: 1 }}>Edit</Button>
-                        <Button size="small" color="error" onClick={() => handleDelete(event.id)}>Delete</Button>
-                      </StyledTableBodyCell>
-                    </StyledTableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </StyledTableContainer>
-        )}
+    const handleDelete = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this event?')) return;
+        try {
+            const res = await axios.delete(`${API_URL}?id=${id}`);
+            if (res.data.success) {
+                showSnackbar('Event deleted successfully!', 'success');
+                await fetchEvents();
+            } else {
+                throw new Error(res.data.message || 'Failed to delete event');
+            }
+        } catch (err) {
+            console.error('Error deleting event:', err);
+            showSnackbar(err.response?.data?.message || err.message, 'error');
+        }
+    };
 
-        {/* Add/Edit Event Dialog */}
-        <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-          <DialogTitle sx={{ bgcolor: theme.palette.background.paper, color: theme.palette.text.primary }}>
-            {isEditMode ? 'Edit Event' : 'Add Event'}
-          </DialogTitle>
-          <StyledDialogContent>
-            <StyledTextField
-              margin="dense"
-              label="Title"
-              name="title"
-              fullWidth
-              value={form.title}
-              onChange={handleChange}
-            />
-            <StyledTextField
-              margin="dense"
-              label="Date"
-              name="date"
-              type="date"
-              fullWidth
-              value={form.date}
-              onChange={handleChange}
-              InputLabelProps={{ shrink: true }}
-            />
-            <StyledTextField
-              margin="dense"
-              label="Time"
-              name="time"
-              type="time"
-              fullWidth
-              value={form.time}
-              onChange={handleChange}
-              InputLabelProps={{ shrink: true }}
-            />
-            <StyledTextField
-              margin="dense"
-              label="Description"
-              name="description"
-              fullWidth
-              multiline
-              rows={3}
-              value={form.description}
-              onChange={handleChange}
-            />
-          </StyledDialogContent>
-          <StyledDialogActions>
-            <Button onClick={handleClose}>Cancel</Button>
-            <Button onClick={handleSubmit} variant="contained" color="primary">
-              {isEditMode ? 'Update' : 'Add'}
-            </Button>
-          </StyledDialogActions>
-        </Dialog>
-      </MainContent>
-    </PageContainer>
-  );
+    const filteredEvents = events.filter(event => {
+        const search = filter.searchText.toLowerCase();
+        return (
+            event.title?.toLowerCase().includes(search) ||
+            event.description?.toLowerCase().includes(search) ||
+            event.date?.toLowerCase().includes(search)
+        );
+    });
+
+    return (
+        <PageContainer>
+            <MacOsTopNavbar />
+            <MainContent>
+                <ContentPaper>
+                    <SectionTitle variant="h4">Manage Events</SectionTitle>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+                        <StyledTextField
+                            label="Search Events"
+                            placeholder="Title, description, or date..."
+                            value={filter.searchText}
+                            onChange={(e) => setFilter({ ...filter, searchText: e.target.value })}
+                            InputProps={{
+                                startAdornment: (
+                                    <SearchIcon sx={{ color: 'action.active', mr: 1 }} />
+                                ),
+                            }}
+                            size="small"
+                            sx={{ width: { xs: '100%', sm: 300 } }}
+                        />
+                        <ActionButton
+                            variant="contained"
+                            color="primary"
+                            onClick={() => handleOpen()}
+                            startIcon={<AddIcon />}
+                        >
+                            Add New Event
+                        </ActionButton>
+                    </Box>
+
+                    {loading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4, flexDirection: 'column', alignItems: 'center' }}>
+                            <CircularProgress />
+                            <Typography variant="h6" sx={{ mt: 2, color: 'text.secondary' }}>Loading Events...</Typography>
+                        </Box>
+                    ) : (
+                        <TableContainer component={Paper} sx={{ borderRadius: '12px', boxShadow: 'none' }}>
+                            <Table>
+                                <TableHead>
+                                    <TableRow>
+                                        <StyledTableHeadCell>Title</StyledTableHeadCell>
+                                        <StyledTableHeadCell>Date</StyledTableHeadCell>
+                                        <StyledTableHeadCell>Time</StyledTableHeadCell>
+                                        <StyledTableHeadCell sx={{ minWidth: 250 }}>Description</StyledTableHeadCell>
+                                        <StyledTableHeadCell align="center">Actions</StyledTableHeadCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {filteredEvents.length === 0 ? (
+                                        <StyledTableRow>
+                                            <StyledTableBodyCell colSpan={5} align="center">
+                                                <Typography color="text.secondary" p={3}>No events found.</Typography>
+                                            </StyledTableBodyCell>
+                                        </StyledTableRow>
+                                    ) : (
+                                        filteredEvents.map((event) => (
+                                            <StyledTableRow key={event.id}>
+                                                <StyledTableBodyCell>{event.title}</StyledTableBodyCell>
+                                                <StyledTableBodyCell>{event.date}</StyledTableBodyCell>
+                                                <StyledTableBodyCell>{event.time}</StyledTableBodyCell>
+                                                <StyledTableBodyCell>{event.description}</StyledTableBodyCell>
+                                                <StyledTableBodyCell align="center">
+                                                    <IconButton color="primary" onClick={() => handleOpen(event)}><EditIcon /></IconButton>
+                                                    <IconButton color="error" onClick={() => handleDelete(event.id)}><DeleteIcon /></IconButton>
+                                                </StyledTableBodyCell>
+                                            </StyledTableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    )}
+                </ContentPaper>
+            </MainContent>
+
+            {/* Add/Edit Event Dialog */}
+            <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '16px' } }}>
+                <DialogTitle sx={{ bgcolor: 'background.paper', color: 'text.primary', fontWeight: 'bold' }}>
+                    {isEditMode ? 'Edit Event' : 'Add New Event'}
+                </DialogTitle>
+                <DialogContent sx={{ bgcolor: 'background.paper' }}>
+                    <StyledTextField margin="dense" label="Title" name="title" fullWidth value={form.title} onChange={handleChange} />
+                    <StyledTextField margin="dense" label="Date" name="date" type="date" fullWidth value={form.date} onChange={handleChange} InputLabelProps={{ shrink: true }} />
+                    <StyledTextField margin="dense" label="Time" name="time" type="time" fullWidth value={form.time} onChange={handleChange} InputLabelProps={{ shrink: true }} />
+                    <StyledTextField margin="dense" label="Description" name="description" fullWidth multiline rows={4} value={form.description} onChange={handleChange} />
+                </DialogContent>
+                <DialogActions sx={{ p: 2, bgcolor: 'background.paper' }}>
+                    <Button onClick={handleClose} color="secondary">Cancel</Button>
+                    <ActionButton onClick={handleSubmit} variant="contained" color="primary">
+                        {isEditMode ? 'Update Event' : 'Add Event'}
+                    </ActionButton>
+                </DialogActions>
+            </Dialog>
+
+            {/* Snackbar for Notifications */}
+            <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleSnackbarClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%', borderRadius: '8px', boxShadow: 3 }}>
+                    {snackbarMessage}
+                </Alert>
+            </Snackbar>
+        </PageContainer>
+    );
 }

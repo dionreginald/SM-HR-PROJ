@@ -36,7 +36,6 @@ import { styled, useTheme, alpha } from "@mui/material/styles"; // Import 'alpha
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import BeachAccessIcon from "@mui/icons-material/BeachAccess";
-import NotificationsIcon from "@mui/icons-material/Notifications";
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import PublicIcon from '@mui/icons-material/Public';
 import EventNoteIcon from '@mui/icons-material/EventNote';
@@ -50,13 +49,13 @@ import EditIcon from '@mui/icons-material/Edit';
 const DashboardContentWrapper = styled(Box)(({ theme }) => ({
     flexGrow: 1,
     padding: theme.spacing(4),
-    // Use theme.palette.background.default for the main background
     backgroundColor: theme.palette.background.default,
     minHeight: 'calc(100vh - 64px)',
     overflowX: 'hidden',
     display: 'flex',
-    [theme.breakpoints.down('md')]: {
-        flexDirection: 'column',
+    flexDirection: 'column', // Default for mobile
+    [theme.breakpoints.up('md')]: {
+        flexDirection: 'row', // Change to row for larger screens
     },
 }));
 
@@ -74,7 +73,7 @@ const RightSidebar = styled(Box)(({ theme }) => ({
     flexShrink: 0,
     marginLeft: theme.spacing(4),
     [theme.breakpoints.down('md')]: {
-        width: '100%',
+        width: '100%', // Sidebar should be full width on mobile
         marginLeft: 0,
         marginTop: theme.spacing(4),
     },
@@ -82,18 +81,17 @@ const RightSidebar = styled(Box)(({ theme }) => ({
 
 const StyledCard = styled(Card)(({ theme }) => ({
     borderRadius: theme.shape.borderRadius * 3,
-    // Adjust boxShadow for dark mode if needed, usually making it lighter or using alpha
-    // Using theme.shadows ensures consistency, but you can explicitly define color
     boxShadow: theme.palette.mode === 'light' ? theme.shadows[6] : `0px 3px 5px ${alpha(theme.palette.common.black, 0.4)}`,
     transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
     position: 'relative',
     overflow: 'hidden',
-    backgroundColor: theme.palette.background.paper, // Ensure card background uses paper color
+    backgroundColor: theme.palette.background.paper,
     '&:hover': {
-        transform: 'translateY(-8px)',
+        transform: 'translateY(-8px)',  // Elevate on hover
         boxShadow: theme.palette.mode === 'light' ? theme.shadows[10] : `0px 6px 10px ${alpha(theme.palette.common.black, 0.6)}`,
     },
 }));
+
 
 const CardHeaderStyled = styled(CardHeader)(({ theme }) => ({
     padding: theme.spacing(2, 3),
@@ -111,25 +109,26 @@ const CardHeaderStyled = styled(CardHeader)(({ theme }) => ({
 }));
 
 const FeatureCardContent = styled(CardContent)(({ theme }) => ({
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    textAlign: 'center',
-    padding: theme.spacing(4),
-    '& .MuiSvgIcon-root': {
-        fontSize: '3.5rem',
-        color: theme.palette.primary.light, // Primary light adapts
-        marginBottom: theme.spacing(2),
-    },
     '& .MuiTypography-h6': {
         fontWeight: 600,
         marginBottom: theme.spacing(1),
-        color: theme.palette.text.primary, // Ensure headers adapt
+        color: theme.palette.text.primary,
+        fontSize: '1.25rem', // Increase font size for mobile
     },
     '& .MuiButton-root': {
         marginTop: theme.spacing(2),
         borderRadius: theme.shape.borderRadius * 2,
         padding: theme.spacing(1.2, 3),
+        fontSize: '1rem', // Increase button text size on mobile
+    },
+    [theme.breakpoints.down('sm')]: {
+        '& .MuiTypography-h6': {
+            fontSize: '1rem', // Smaller font size on mobile
+        },
+        '& .MuiButton-root': {
+            padding: theme.spacing(1, 2),
+            fontSize: '1.2rem', // Larger button text size on mobile
+        },
     },
 }));
 
@@ -176,6 +175,8 @@ export default function EmployeeDashboard() {
     const [upcomingEvents, setUpcomingEvents] = useState([]);
     const [employeeTasks, setEmployeeTasks] = useState([]);
     const [taskCompletionPercentage, setTaskCompletionPercentage] = useState(0);
+    const [notifications, setNotifications] = useState([]);
+    const [visibleNotifications] = useState(4);  // Limit to 4 visible notifications initially
 
     // State for Add/Edit Task Modal
     const [openTaskModal, setOpenTaskModal] = useState(false);
@@ -388,7 +389,16 @@ export default function EmployeeDashboard() {
         });
         setOpenTaskModal(true);
     };
+        useEffect(() => {
+            const fetchNotifications = async () => {
+                // Replace this with your actual API call
+                const response = await axios.get('http://localhost/smarthr_proj/get_notifications.php?employee_id=1');
+                setNotifications(response.data.data);
+                setLoading(false);
+            };
 
+            fetchNotifications();
+        }, []);
 
     useEffect(() => {
         const storedEmployee = localStorage.getItem("employee");
@@ -588,40 +598,42 @@ export default function EmployeeDashboard() {
                 <Grid container spacing={4}>
                     <Grid item xs={12} lg={6}>
                         <StyledCard>
-                            <CardHeaderStyled
-                                title="Recent Activity"
-                                subheader="Stay informed with the latest updates from SmartHR."
-                                avatar={<NotificationsIcon color="action" />} // "action" color might not adapt well, consider "info" or "secondary"
-                            />
-                            <CardContent>
-                                <List disablePadding>
-                                    <ActivityListItem disablePadding>
-                                        <ListItemText
-                                            primary={<Typography color="text.primary">Your last leave request was approved.</Typography>}
-                                            secondary={<Typography color="text.secondary">2 hours ago - Human Resources</Typography>}
-                                        />
-                                    </ActivityListItem>
-                                    <Divider component="li" />
-                                    <ActivityListItem disablePadding>
-                                        <ListItemText
-                                            primary={<Typography color="text.primary">New company policies uploaded to documents section.</Typography>}
-                                            secondary={<Typography color="text.secondary">Yesterday - Company Announcements</Typography>}
-                                        />
-                                    </ActivityListItem>
-                                    <Divider component="li" />
-                                    <ActivityListItem disablePadding>
-                                        <ListItemText
-                                            primary={<Typography color="text.primary">Performance review scheduled for next week.</Typography>}
-                                            secondary={<Typography color="text.secondary">3 days ago - Your Manager</Typography>}
-                                        />
-                                    </ActivityListItem>
-                                </List>
-                                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                                    <Button sx={{ borderRadius: theme.shape.borderRadius * 2 }} component={RouterLink} to="/employee-notifications" endIcon={<ArrowForwardIcon />}>
-                                        View All Notifications
-                                    </Button>
-                                </Box>
-                            </CardContent>
+                        <CardContent>
+                            <List disablePadding sx={{ maxHeight: '300px', overflowY: 'auto' }}>  {/* Set max height and make it scrollable */}
+                                {loading ? (
+                                    <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+                                        Loading notifications...
+                                    </Typography>
+                                ) : notifications.length > 0 ? (
+                                    notifications.slice(0, visibleNotifications).map((notification, index) => (
+                                        <React.Fragment key={notification.id}>
+                                            <ActivityListItem disablePadding>
+                                                <ListItemText
+                                                    primary={<Typography color="text.primary">{notification.title}</Typography>}
+                                                    secondary={<Typography color="text.secondary">{new Date(notification.created_at).toLocaleString()} - {notification.message}</Typography>}
+                                                />
+                                            </ActivityListItem>
+                                            {index < visibleNotifications - 1 && <Divider component="li" />}
+                                        </React.Fragment>
+                                    ))
+                                ) : (
+                                    <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+                                        No recent activity available.
+                                    </Typography>
+                                )}
+                            </List>
+                            {/* View All Notifications Button */}
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                                <Button
+                                    sx={{ borderRadius: '16px' }}
+                                    component="a"
+                                    href="/employee-notifications"
+                                    endIcon={<ArrowForwardIcon />}
+                                >
+                                    View All Notifications
+                                </Button>
+                            </Box>
+                        </CardContent>
                         </StyledCard>
                     </Grid>
 

@@ -301,7 +301,11 @@ const ContactPage = () => {
       </Snackbar>
 
       {/* Footer */}
-      <StyledFooter>
+        <StyledFooter
+          sx={{
+            backgroundColor: '#cde6ffff'
+          }}
+        >
         <Container maxWidth="lg">
           <Grid container spacing={4} justifyContent="space-between">
             {/* Company Info / Logo */}
